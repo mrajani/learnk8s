@@ -1,0 +1,33 @@
+---
+- hosts: "{{ server_hosts | default('ubuntu') }}"
+  gather_facts: True
+  become: true
+  vars_files:
+    - ansible_vars_ubuntu.yml
+  vars:
+    docker_version: "{{ version }}-{{ ansible_distribution_release }}"
+
+  tasks:
+    - name: Install aptitude using apt
+      apt: name=aptitude state=present update_cache=yes force_apt_get=yes
+
+    - name: Install required system packages
+      apt: name={{ item }} state=present update_cache=yes
+      loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo:  deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution|lower }} {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Update apt and install docker-ce-cli {{ docker_version }}
+      apt: update_cache=yes name=docker-ce-cli={{ docker_version }} state=present
+
+    - name: Update apt and install docker-ce {{ docker_version }}
+      apt: update_cache=yes name=docker-ce={{ docker_version }} state=present
+

@@ -1,0 +1,118 @@
+---
+- hosts: "{{ server_hosts | default('k8s*') }}"
+  gather_facts: True
+  become: true
+  tags: prereqs
+  vars_files:
+    - "ansible_vars_{{ ansible_distribution | lower }}.yml"
+    - "ansible_vars_k8s.yml"
+
+  tasks:
+    - name: Add Kubernetes GPG apt Key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernets Repository
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        filename: 'kubernetes'
+
+    - name: Install kubectl {{ k8s_version }}
+      apt: update_cache=yes name=kubectl={{ k8s_version }} state=present
+
+    - name: Install kubelet {{ k8s_version }}
+      apt: update_cache=yes name=kubelet={{ k8s_version }} state=present
+
+    - name: Install kubeadm {{ k8s_version }}
+      apt: update_cache=yes name=kubeadm={{ k8s_version }} state=present
+
+    - name: Enable ip forward and bridging
+      blockinfile:
+        dest: /etc/sysctl.d/99-k8s.conf
+        create: yes
+        block: |
+         net.ipv4.ip_forward = 1
+         net.bridge.bridge-nf-call-iptables = 1
+         net.bridge.bridge-nf-call-ip6tables = 1
+
+    - name: Restart Sysctl
+      sysctl:
+        name: net.ipv4.ip_forward
+        state: present
+        value: "1"
+        sysctl_set: yes
+        reload: yes
+
+    - name: Disable Swap
+      shell: |
+        swapoff -a
+      when: kubernetes_installed is changed
+
+    - name: Disable in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^(.+?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+      when: kubernetes_installed is changed
+
+
+- hosts: k8s_master
+  gather_facts: True
+  become: true
+  tags: init
+  vars_files:
+    - ansible_vars_ubuntu.yml
+    - ansible_vars_k8s.yml
+  tasks:
+    - name: Create kubeadm directory
+      file:
+        path: /etc/kubernetes/kubeadm
+        state: directory
+        mode: '0755'
+
+    - name: Populate kubeadm config
+      template:
+        src: kubeadm-config.j2
+        dest: /etc/kubernetes/kubeadm/kubeadm-config.yaml
+
+  # - name: Run kubeadm init command here
+
+    - name: create .kube directory
+      become: yes
+      become_user: "{{ k8s_user }}"
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: check if admin.conf exists
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: k8s_admin_conf
+
+    - name: copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/{{ k8s_user }}/.kube/config
+        remote_src: yes
+        owner: "{{ k8s_user }}"
+      when: k8s_admin_conf.stat.exists == True
+
+    - name: Download CNI Calico Yaml
+      become: yes
+      become_user: "{{ k8s_user }}"
+      tags: cni
+      get_url:
+        url: https://docs.projectcalico.org/v3.9/manifests/calico.yaml
+        dest: /home/{{ k8s_user }}/calico.yaml
+    # works only for calico
+    - name: Replace CNI Calico Pod CIDR
+      tags: cni
+      replace:
+        backup: yes
+        path: /home/{{ k8s_user }}/calico.yaml
+        regexp: '192.168.0.0/16'
+        replace: "{{ pod_cidr }}"
+

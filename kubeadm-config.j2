@@ -1,0 +1,8 @@
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: stable
+controlPlaneEndpoint: "{{ loadbalancer }}:6443"
+networking:
+serviceSubnet: "{{ service_cidr }}"
+podSubnet: "{{ pod_cidr }}"
+# dnsDomain: "{{ dns_domain }}"

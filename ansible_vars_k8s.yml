@@ -1,0 +1,6 @@
+k8s_user: cloud_user
+k8s_version: 1.16.0-00
+service_cidr: 10.96.0.0/12
+pod_cidr: 10.244.0.0/16
+dns_domain: k8scluster.local
+loadbalancer: 172.31.126.84

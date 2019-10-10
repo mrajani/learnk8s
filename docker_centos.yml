@@ -1,0 +1,38 @@
+---
+- hosts: "{{ server_hosts | default('centos') }}"
+  gather_facts: True
+  become: true
+  vars_files:
+    - ansible_vars_centos.yml
+  tasks:
+    - name: Install required system packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - yum-utils
+        - device-mapper-persistent-data
+        - lvm2
+        - curl
+
+    - name: Add Docker Repository
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: 0644
+
+    - name: Install docker-ce-cli {{ docker_version }}
+      yum:
+        name: docker-ce-cli-{{ docker_version }}
+        state: present
+
+    - name: Install docker-ce {{ docker_version }}
+      yum:
+        name: docker-ce-{{ docker_version }}
+        state: present
+
+    - name: Enable and Start Docker Service
+      service:
+        name: docker
+        state: started
+        enabled: yes

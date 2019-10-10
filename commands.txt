@@ -1,0 +1,10 @@
+# create ansible user on hosts
+ansible-playbook sudoer.yml -e server_hosts=sudoer -e sudoer=ansible
+# install docker on ubuntu servers
+ansible-playbook docker_ubuntu.yml -e server_hosts=ubuntu
+# install docker on centos servers
+ansible-playbook docker_centos.yml -e server_hosts=centos
+# install k8s in all ubuntu servers
+ansible-playbook k8s.yml -e server_hosts=k8s* --tags prereqs
+ansible-playbook k8s.yml -e server_hosts=k8s_master --tags init
+ansible-playbook k8s.yml -e server_hosts=k8s_ha_master --tags prereqs
