@@ -1,29 +1,26 @@
 [k8s_master]
-k8scp1 ansible_host=myhost2c.example.com
+k8scp0
 
 [k8s_ha_master]
-k8scp2 ansible_host=myhost3c.example.com
+k8scp1
 
 [k8s_worker]
-k8swk1 ansible_host=myhost4c.example.com
-k8swk2 ansible_host=myhost5c.example.com
-k8swk3 ansible_host=myhost6c.example.com
+k8swk0
+k8swk1
+k8swk2
 
 [loadbalancer]
-k8slb ansible_host=myhost1c.example.com
+k8slb0
 
-[sudoer:children]
-loadbalancer
+[k8s:children]
 k8s_master
 k8s_ha_master
 k8s_worker
 
 [ubuntu]
-k8slb ansible_host=myhost1c.example.com
-k8scp1 ansible_host=myhost2c.example.com
-k8scp2 ansible_host=myhost3c.example.com
-k8swk1 ansible_host=myhost4c.example.com
-k8swk2 ansible_host=myhost5c.example.com
-
-[centos]
-k8swk3 ansible_host=myhost6c.example.com
+k8slb0
+k8scp0
+k8scp1
+k8swk0
+k8swk1
+k8swk2
