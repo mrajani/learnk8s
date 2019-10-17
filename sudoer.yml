@@ -1,17 +1,20 @@
 - hosts: "{{ server_hosts }}"
-  become: yes
+  become: Yes
+  gather_facts: No
+  vars:
+    myuser: "{{ sudoer | default('ansible') }}"
   tasks:
-    - name: create the "{{ sudoer }}" user
-      user: name={{ sudoer }} append=yes state=present createhome=yes shell=/bin/bash
+    - name: create the "{{ myuser }}" user
+      user: name={{ myuser }} append=yes state=present create_home=yes shell=/bin/bash
 
-    - name: allow "{{ sudoer }}" to have passwordless sudo
+    - name: allow "{{ myuser }}" to have passwordless sudo
       lineinfile:
         create: yes
-        dest: /etc/sudoers.d/{{ sudoer }}
-        line: '{{ sudoer }} ALL=(ALL) NOPASSWD: ALL'
+        dest: /etc/sudoers.d/{{ myuser }}
+        line: '{{ myuser }} ALL=(ALL) NOPASSWD: ALL'
         validate: 'visudo -cf %s'
 
-    - name: set up authorized keys for the {{ sudoer }} user
-      authorized_key: user={{ sudoer }} key="{{item}}"
+    - name: set up authorized keys for the {{ myuser }} user
+      authorized_key: user={{ myuser }} key="{{item}}"
       with_file:
-        - ~/.ssh/lnxa_rsa.pub
+        - ~/.ssh/tfadmin.pub
